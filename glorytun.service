@@ -1,0 +1,11 @@
+[Unit]
+Description=Glorytun mud tunnel
+After=tlp-init.service
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/glorytun/env
+ExecStart=/home/greg/dev/glorytun-systemd/glorytun.sh
+
+[Install]
+WantedBy=multi-user.target
