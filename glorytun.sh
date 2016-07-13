@@ -2,17 +2,17 @@
 
 keyfile=/etc/glorytun/key
 
-GLORYTUN_BIND_IPS=$(ifconfig ${GLORYTUN_INPUT_DEV} | grep "inet " | awk '{ print $2 }')
+# Get the name of the interface with the default route
+GLORYTUN_IF_NAME=$(ip route | grep default | awk '{ print $5 }')
+
+# Get the IP on this interface
+GLORYTUN_BIND_IPS=$(ifconfig ${GLORYTUN_IF_NAME} | grep "inet " | awk '{ print $2 }')
 
 if [ -z "${GLORYTUN_HOST}" ]; then
     echo "missing host"
     exit 1
 fi
 if [ -z "${GLORYTUN_PORT}" ]; then
-    echo "missing port"
-    exit 1
-fi
-if [ -z "${GLORYTUN_BIND_IPS}" ]; then
     echo "missing port"
     exit 1
 fi
@@ -26,53 +26,55 @@ fi
 : ${GLORYTUN_PORT:=5000}
 
 statefile=/run/glorytun.fifo
-rm -f "${statefile}"
-mkfifo "${statefile}"
+[ -p ${statefile} ] || mkfifo ${statefile}
 
-trap "pkill -TERM -P $$" TERM
+# Launch glorytun
 /usr/sbin/glorytun dev ${GLORYTUN_DEV} host ${GLORYTUN_HOST} statefile ${statefile} port ${GLORYTUN_PORT} bind-port ${GLORYTUN_PORT} mtu ${GLORYTUN_MTU} keyfile ${keyfile} bind ${GLORYTUN_BIND_IPS} &
 GTPID=$!
 
-initialized() {
-    echo "Configuring ${GLORYTUN_DEV}"
-    ip addr add ${GLORYTUN_IP_LOCAL} peer ${GLORYTUN_IP_PEER} dev ${GLORYTUN_DEV}
-    ip link set ${GLORYTUN_DEV} mtu ${GLORYTUN_MTU}
-    ip link set ${GLORYTUN_DEV} txqueuelen ${GLORYTUN_TXQLEN}
-    ip link set ${GLORYTUN_DEV} up
-    echo "Configuration done"
+# Catch the SIGINT / SIGTERM
+stop() {
+    kill -TERM ${GTPID}
+    exit 0
 }
+trap 'stop' TERM INT QUIT
 
-started() {
-    echo "mud started"
-    echo "setting routes"
-    gateway=$(ip route get ${GLORYTUN_HOST} | grep via | awk '{ print $3 }')
-    ip route add 0.0.0.0/1 via ${GLORYTUN_IP_LOCAL}
-    ip route add 128.0.0.0/1 via ${GLORYTUN_IP_LOCAL}
-    ip route add ${GLORYTUN_HOST} via ${gateway} dev ${GLORYTUN_INPUT_DEV}
-    echo "routes set"
-}
+# Remove the statefile on exit
+cleanup() {
+    echo "starting cleanup"
+    echo "deleting FIFO"
+    rm -f ${statefile}
 
-stopped() {
-    echo "mud stopped"
     echo "deleting routes"
-    ip route del 0.0.0.0/1 via ${GLORYTUN_IP_LOCAL}
-    ip route del 128.0.0.0/1 via ${GLORYTUN_IP_LOCAL}
     ip route del ${GLORYTUN_HOST}
     echo "routes deleted"
+    echo "cleanup done"
 }
+trap 'cleanup' EXIT
 
 while kill -0 ${GTPID}; do
-    read STATE DEV || break
-    echo ${STATE} ${DEV}
+    read STATE DEV <${statefile} || break
+    echo "FIFO input: ${STATE} ${DEV}"
     case ${STATE} in
     INITIALIZED)
-        initialized
+        echo "Configuring ${GLORYTUN_DEV}"
+        ip addr add ${GLORYTUN_IP_LOCAL} peer ${GLORYTUN_IP_PEER} dev ${GLORYTUN_DEV}
+        ip link set ${GLORYTUN_DEV} mtu ${GLORYTUN_MTU}
+        ip link set ${GLORYTUN_DEV} txqueuelen ${GLORYTUN_TXQLEN}
+        ip link set ${GLORYTUN_DEV} up
+        echo "setting routes"
+        gateway=$(ip route get ${GLORYTUN_HOST} | grep via | awk '{ print $3 }')
+        ip route add 0.0.0.0/1 via ${GLORYTUN_IP_LOCAL}
+        ip route add 128.0.0.0/1 via ${GLORYTUN_IP_LOCAL}
+        ip route add ${GLORYTUN_HOST} via ${gateway} dev ${GLORYTUN_IF_NAME}
+        echo "routes set"
+        echo "Configuration done"
         ;;
     STARTED)
-        started
+        echo "mud connected"
         ;;
     STOPPED)
-        stopped
+        echo "mud disconnected"
         ;;
     esac
-done < ${statefile}
+done
