@@ -9,7 +9,6 @@ Download the latest glorytun-mud version from [here](https://github.com/angt/glo
 Write the env in /etc/glorytun/env
 
 ```
-GLORYTUN_INPUT_DEV=interface_name
 GLORYTUN_HOST=server_ip
 GLORYTUN_PORT=server_port
 ```
@@ -33,4 +32,15 @@ systemctl start glorytun
 
 ```
 systemctl stop glorytun
+```
+
+### Hook glorytun with NetwokManager
+
+Copy the glorytun-hook.sh, make sure it is owned by root !
+
+This script will be executed by NetworkManager everytime an interface goes up or down. You can edit and tweak it.
+
+
+```
+cp glorytun-hook.sh /etc/NetworkManager/dispatcher.d/glorytun-hook.sh
 ```
