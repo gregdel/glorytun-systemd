@@ -18,6 +18,7 @@ Write the raw key in /etc/glorytun/key
 ### Enable the service
 
 ```
+ln -s glorytun.sh /usr/sbin/glorytun.sh
 ln -s the_service_path /etc/systemd/system/glorytun.service
 systemctl daemon-reload
 ```

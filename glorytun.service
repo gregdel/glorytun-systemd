@@ -4,7 +4,7 @@ Description=Glorytun mud tunnel
 [Service]
 Type=simple
 EnvironmentFile=/etc/glorytun/env
-ExecStart=/home/greg/dev/glorytun-systemd/glorytun.sh
+ExecStart=/usr/sbin/glorytun.sh
 
 [Install]
 WantedBy=multi-user.target
