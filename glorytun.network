@@ -1,0 +1,7 @@
+[Match]
+Name=mud*
+
+[Network]
+Description=glorytun tun device configuration
+Address=10.0.0.2/24
+DHCP=no

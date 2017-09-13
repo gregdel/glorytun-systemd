@@ -4,7 +4,8 @@ Description=Glorytun mud tunnel
 [Service]
 Type=simple
 EnvironmentFile=/etc/glorytun/env
-ExecStart=/usr/sbin/glorytun.sh
+ExecStartPre=/usr/bin/bash -c "/usr/bin/systemctl set-environment GLORYTUN_BINDS=$(ip -o r get 8.8.8.8 | awk '{ print $7 }')"
+ExecStart=/usr/sbin/glorytun-udp keyfile /etc/glorytun/key host ${GLORYTUN_HOST} port ${GLORYTUN_PORT} dev ${GLORYTUN_DEV} bind-port ${GLORYTUN_PORT} mtu ${GLORYTUN_MTU} bind ${GLORYTUN_BINDS} v4only
 
 [Install]
 WantedBy=multi-user.target
