@@ -2,15 +2,19 @@
 
 ### Installation
 
-Download the latest glorytun-mud version from [here](https://github.com/angt/glorytun/releases) and save it in /usr/sbin/glorytun
+```
+sudo ./install.sh
+```
 
 ### Configuration
 
 Write the env in /etc/glorytun/env
 
 ```
+GLORYTUN_DEV=mud0
 GLORYTUN_HOST=server_ip
 GLORYTUN_PORT=server_port
+GLORYTUN_MTU=1400
 ```
 
 Write the raw key in /etc/glorytun/key
@@ -18,9 +22,7 @@ Write the raw key in /etc/glorytun/key
 ### Enable the service
 
 ```
-ln -s glorytun.sh /usr/sbin/glorytun.sh
-ln -s the_service_path /etc/systemd/system/glorytun.service
-systemctl daemon-reload
+systemctl enable glorytun
 ```
 
 ### Start the service
@@ -33,15 +35,4 @@ systemctl start glorytun
 
 ```
 systemctl stop glorytun
-```
-
-### Hook glorytun with NetwokManager
-
-Copy the glorytun-hook.sh, make sure it is owned by root !
-
-This script will be executed by NetworkManager everytime an interface goes up or down. You can edit and tweak it.
-
-
-```
-cp glorytun-hook.sh /etc/NetworkManager/dispatcher.d/glorytun-hook.sh
 ```
